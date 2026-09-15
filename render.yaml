@@ -1,0 +1,22 @@
+# ACHAT+ - configuration Render (déploiement gratuit sans carte bancaire)
+#
+# Architecture : un seul service Render自由 combine l'API Express + les deux sites SPA.
+# La base de données PostgreSQL est Neon (gratuit) — configurez DATABASE_URL
+# dans les variables d'environnement du service sur Render.
+
+services:
+  - type: web
+    name: achat-plus
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && cd ../Achat_Plus_Site_public/achat-plus && npm install && BASE_PATH=/ npm run build && cd ../../achat-plus-admin && npm install && BASE_PATH=/admin/ npm run build
+    startCommand: npm start
+    healthCheckPath: /api/settings
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_SECRET
+        sync: false
