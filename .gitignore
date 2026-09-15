@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# SQLite data (legacy)
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+*.log.err
+npm-debug.log*
+
+# Ancien doublon du site public (non utilisé)
+achat-public/
+
+# Temp
+.opencode/
+
+# Render
+render.yaml
