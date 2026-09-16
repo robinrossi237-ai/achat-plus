@@ -54,7 +54,7 @@ function AdminShell({ children, onLogout }: { children: ReactNode; onLogout: () 
   const [collapsed, setCollapsed] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { data: settings } = useGetSettings();
-  const whatsapp = settings?.whatsapp || '237690000000';
+  const whatsapp = settings?.whatsapp || '237677420606';
   const adminName = settings?.adminName || 'Administrateur';
   const adminEmail = settings?.adminEmail || 'admin@achatplus.com';
   const nav = [

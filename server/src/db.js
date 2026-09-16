@@ -71,7 +71,7 @@ const SCHEMA = `
     id INTEGER PRIMARY KEY CHECK (id = 1),
     storeName TEXT NOT NULL DEFAULT 'ACHAT+',
     logo TEXT,
-    whatsapp TEXT NOT NULL DEFAULT '237690000000',
+    whatsapp TEXT NOT NULL DEFAULT '237677420606',
     description TEXT NOT NULL DEFAULT '',
     adminName TEXT NOT NULL DEFAULT 'Administrateur',
     adminEmail TEXT NOT NULL DEFAULT 'admin@achatplus.com',
@@ -153,7 +153,7 @@ export async function initDb() {
   await pool.query(SCHEMA);
   await pool.query(`
     INSERT INTO settings (id, storeName, logo, whatsapp, description, adminName, adminEmail)
-    VALUES (1, 'ACHAT+', NULL, '237690000000', 'Boutique en ligne simple et fiable au Cameroun.', 'Administrateur', 'admin@achatplus.com')
+    VALUES (1, 'ACHAT+', NULL, '237677420606', 'Boutique en ligne simple et fiable au Cameroun.', 'Administrateur', 'admin@achatplus.com')
     ON CONFLICT (id) DO NOTHING
   `);
   return pool;

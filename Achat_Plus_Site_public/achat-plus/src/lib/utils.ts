@@ -10,7 +10,7 @@ export function formatPrice(price: number | undefined | null) {
   return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
 }
 
-export const WHATSAPP_NUMBER = "221770000000"
+export const WHATSAPP_NUMBER = "237677420606"
 
 export function buildWhatsAppMessage(
   items: Array<{ name: string; quantity: number; price: number }>,
