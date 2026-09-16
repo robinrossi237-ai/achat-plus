@@ -29,7 +29,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from '@/hooks/use-toast';
 
 const queryClient = new QueryClient();
-const PUBLIC_STORE_URL = (import.meta.env.VITE_PUBLIC_URL as string | undefined) || 'http://192.168.1.155:3002';
+const PUBLIC_STORE_URL = (import.meta.env.VITE_PUBLIC_URL as string | undefined) || '/';
 const money = (value: number) => new Intl.NumberFormat('fr-FR').format(value) + ' FCFA';
 const date = (value: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
 const initials = (name: string) => name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
