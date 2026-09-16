@@ -1,8 +1,8 @@
 packages:
   - 'achat-plus-admin'
-  - 'achat-public'
   - 'lib/*'
   - 'Achat_Plus_Site_public/achat-plus'
+  - 'server'
 
 catalog:
   react: ^18.3.1

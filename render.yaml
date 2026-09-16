@@ -9,9 +9,8 @@ services:
     name: achat-plus
     runtime: node
     plan: free
-    rootDir: server
-    buildCommand: npm install && cd ../Achat_Plus_Site_public/achat-plus && npm install && BASE_PATH=/ npm run build && cd ../../achat-plus-admin && npm install && BASE_PATH=/admin/ npm run build
-    startCommand: npm start
+    buildCommand: npm i -g pnpm@10.20.0 && pnpm install && BASE_PATH=/ pnpm --filter @workspace/achat-plus run build && BASE_PATH=/admin/ pnpm --filter achat-plus-admin run build
+    startCommand: cd server && npm start
     healthCheckPath: /api/settings
     envVars:
       - key: PORT
