@@ -61,8 +61,8 @@ export default function CategoryPage() {
                       key={i}
                       src={img}
                       alt={`${category.name} ${i + 1}`}
-                      style={{ gridArea: "stack", width: "100%", height: "auto", objectFit: "contain" }}
-                      className={`transition-opacity duration-700 ${i === imgIndex ? "opacity-100" : "opacity-0"}`}
+                      style={{ gridArea: "stack", width: "100%", objectFit: "contain" }}
+                      className={`h-52 w-full object-contain sm:h-60 md:h-72 transition-opacity duration-700 ${i === imgIndex ? "opacity-100" : "opacity-0"}`}
                     />
                   ))}
                 </div>
