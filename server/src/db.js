@@ -1,11 +1,26 @@
 import 'dotenv/config';
+import dns from 'node:dns';
 import pg from 'pg';
+import { logger } from './logger.js';
+
+// Le resolver systeme Windows lache occasionnellement (ENOTFOUND).
+// On prefere des resolveurs publics rapides, avec le systeme en repli.
+const systemDns = dns.getServers();
+dns.setServers(['1.1.1.1', '1.0.0.1', '8.8.8.8', '8.8.4.4', ...systemDns]);
 
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/achatplus',
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  max: 4,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 30000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
+});
+
+// Sans ce listener, une connexion idle coupée par Neon leve une exception
+// non rattrapée et tue tout le process serveur.
+pool.on('error', (err) => {
+  logger.error('Pool idle client error:', err.message);
 });
 
 const SCHEMA = `

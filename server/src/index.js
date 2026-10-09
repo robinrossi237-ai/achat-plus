@@ -6,12 +6,37 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDb, pool } from './db.js';
 import { seed } from './seed.js';
+import { logger } from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const q = async (sql, params = []) => (await pool.query(sql, params)).rows;
-const one = async (sql, params = []) => (await pool.query(sql, params)).rows[0];
-const go = async (sql, params = []) => pool.query(sql, params);
+// Neon coupe parfois les connexions inactives : on retente automatiquement
+// sur les erreurs transitoires au lieu de renvoyer une erreur au client.
+const TRANSIENT = ['57P01', '57P02', '57P03', '53300', '53400', '08006', '08001', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EHOSTUNREACH', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'ENETDOWN'];
+const isTransient = (err) => {
+  const code = err?.code || '';
+  const msg = String(err?.message || '');
+  return TRANSIENT.includes(code) || /Connection terminated|timeout exceeded|Connection timeout|ECONNRESET|server closed the connection|Client has encountered a connection error|ENOTFOUND|EAI_AGAIN|getaddrinfo/i.test(msg);
+};
+
+const withRetry = async (fn, attempts = 5) => {
+  let lastErr;
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isTransient(err) || i === attempts) throw err;
+      logger.warn(`DB retry ${i}/${attempts - 1} (${err.code || err.message})`);
+      await new Promise((resolve) => setTimeout(resolve, 800 * i));
+    }
+  }
+  throw lastErr;
+};
+
+const q = async (sql, params = []) => withRetry(async () => (await pool.query(sql, params)).rows);
+const one = async (sql, params = []) => withRetry(async () => (await pool.query(sql, params)).rows[0]);
+const go = async (sql, params = []) => withRetry(() => pool.query(sql, params));
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const app = express();
@@ -1079,6 +1104,14 @@ app.get('/api/stats/dashboard', requireAuth, ah(async (req, res) => {
 const publicDist = path.join(__dirname, '..', '..', 'Achat_Plus_Site_public', 'achat-plus', 'dist', 'public');
 const adminDist  = path.join(__dirname, '..', '..', 'achat-plus-admin', 'dist', 'public');
 
+// API errors must stay JSON: without this, Express replies HTML and clients crash parsing.
+app.use('/api', (err, req, res, next) => {
+  logger.error(`API ${req.method} ${req.originalUrl} -> ${err?.code || ''} ${err?.message || err}`);
+  if (res.headersSent) return next(err);
+  const status = err?.status || err?.statusCode || 500;
+  res.status(status).json({ error: err?.message || 'Erreur serveur' });
+});
+
 // API 404
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Endpoint introuvable' });
@@ -1095,14 +1128,59 @@ app.get('*', (req, res) => res.sendFile(path.join(publicDist, 'index.html')));
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
-initDb()
-  .then(async () => {
+
+// Le serveur écoute tout de suite : la DB peut mettre plusieurs secondes à
+// répondre (DNS lent + veille Neon). Les requêtes /api attendent qu'elle soit prête.
+let dbReady = false;
+const dbWaiters = new Set();
+const markDbReady = () => {
+  dbReady = true;
+  for (const resolve of dbWaiters) resolve(true);
+  dbWaiters.clear();
+};
+const waitForDb = async (maxMs = 40000) => {
+  if (dbReady) return true;
+  return Promise.race([
+    new Promise((resolve) => dbWaiters.add(resolve)),
+    new Promise((resolve) => setTimeout(() => resolve(false), maxMs)),
+  ]);
+};
+
+app.use('/api', async (req, res, next) => {
+  try {
+    if (dbReady) return next();
+    const ok = await waitForDb();
+    if (ok) return next();
+    res.status(503).json({ error: 'Base de donnees indisponible, reessayez dans un instant' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const connectDb = async (attempt = 1) => {
+  try {
+    await initDb();
     await seed();
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`ACHAT+ API running on http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Database startup failed:', err?.message || err);
-    process.exit(1);
-  });
+    markDbReady();
+    logger.info('Database ready');
+  } catch (err) {
+    // On ne rend jamais l'ecoute fatale : le serveur reste up et reessaie.
+    const wait = Math.min(attempt * 3000, 15000);
+    logger.warn(`Database indisponible (${err?.message || err}) — nouvelle tentative dans ${wait / 1000}s`);
+    setTimeout(() => connectDb(attempt + 1), wait);
+  }
+};
+
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`ACHAT+ API running on http://localhost:${PORT}`);
+});
+
+// Un serveur ne doit pas mourir sur une promesse rejetee isolee.
+process.on('unhandledRejection', (reason) => {
+  logger.error('unhandledRejection:', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  logger.error('uncaughtException:', err?.message || err);
+});
+
+connectDb();

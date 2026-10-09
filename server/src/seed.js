@@ -1,4 +1,5 @@
 import { pool } from './db.js';
+import { logger } from './logger.js';
 
 const photo = (id, width = 900) =>
   `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${width}`;
@@ -172,5 +173,5 @@ export async function seed() {
     );
   }
 
-  console.log('Database seeded.');
+  logger.info('Database seeded.');
 }
