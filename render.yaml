@@ -1,6 +1,8 @@
 # ACHAT+ - configuration Render (déploiement gratuit sans carte bancaire)
 #
-# Architecture : un seul service Render自由 combine l'API Express + les deux sites SPA.
+# Architecture : Render = API Express seule (gratuit).
+# Les 2 front-ends partent sur Vercel (builds illimités) et appellent
+# cette API via VITE_API_URL. La base de données PostgreSQL est Neon.
 # La base de données PostgreSQL est Neon (gratuit) — configurez DATABASE_URL
 # dans les variables d'environnement du service sur Render.
 
@@ -9,7 +11,7 @@ services:
     name: achat-plus
     runtime: node
     plan: free
-    buildCommand: npx --yes pnpm@10.20.0 install && BASE_PATH=/ npx --yes pnpm@10.20.0 --filter @workspace/achat-plus run build && BASE_PATH=/admin/ npx --yes pnpm@10.20.0 --filter achat-plus-admin run build
+    buildCommand: npx --yes pnpm@10.20.0 install
     startCommand: cd server && npm start
     healthCheckPath: /api/settings
     envVars:

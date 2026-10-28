@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDb, pool } from './db.js';
@@ -1117,14 +1118,25 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Endpoint introuvable' });
 });
 
-// Admin static assets + SPA fallback
-app.use('/admin', express.static(adminDist));
-app.get('/admin', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
-app.get('/admin/*', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+// Admin static assets + SPA fallback (seulement si le dist existe :
+// en mode API seule, les front-ends sont sur Vercel).
+const hasAdminDist = fs.existsSync(path.join(adminDist, 'index.html'));
+const hasPublicDist = fs.existsSync(path.join(publicDist, 'index.html'));
+
+if (hasAdminDist) {
+  app.use('/admin', express.static(adminDist));
+  app.get('/admin', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+  app.get('/admin/*', (req, res) => res.sendFile(path.join(adminDist, 'index.html')));
+}
 
 // Public static assets + SPA fallback (catch-all)
-app.use(express.static(publicDist));
-app.get('*', (req, res) => res.sendFile(path.join(publicDist, 'index.html')));
+if (hasPublicDist) {
+  app.use(express.static(publicDist));
+  app.get('*', (req, res) => res.sendFile(path.join(publicDist, 'index.html')));
+} else {
+  // Mode API seule : pas de crash ENOENT, réponse JSON explicite.
+  app.get('*', (req, res) => res.status(404).json({ error: 'API ACHAT+ : front-end hébergé séparément' }));
+}
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
